@@ -24,6 +24,7 @@ import com.phono.srtplight.SRTPProtocolImpl;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.util.Properties;
+import pe.pi.whipi.util.AlsaOpus;
 import pe.pi.whipi.util.CandidateTransport;
 import pe.pi.whipi.util.V4l2H264;
 
@@ -33,13 +34,17 @@ import pe.pi.whipi.util.V4l2H264;
  */
 class RTP {
 
-    private ICESRTP outsrtp;
+    private ICESRTP outvsrtp;
     private Properties[] cprops;
     private CandidateTransport cdt;
     static int id = 10;
-    long csrc;
-    int type = 0;
+    long vcsrc;
+    int vtype = 0;
+    int atype = 0;
     private V4l2H264 vidSender;
+    private AlsaOpus audioSender;
+    private ICESRTP outasrtp;
+    private long acsrc;
 
     void inbound(RTCEventData pkt) {
         // ignore RTCP data for now.
@@ -51,8 +56,8 @@ class RTP {
 
     class ICESRTP extends SRTPProtocolImpl {
 
-        public ICESRTP(int id, int type, Properties lcryptoProps, Properties rcryptoProps) {
-            super(id, null, null, type, lcryptoProps, rcryptoProps);
+        public ICESRTP(int id, int vtype, Properties lcryptoProps, Properties rcryptoProps) {
+            super(id, null, null, vtype, lcryptoProps, rcryptoProps);
         }
 
         public void parseICEPacket(DatagramPacket dp) throws IOException {
@@ -81,23 +86,38 @@ class RTP {
 
     void start() {
         Properties[] flip = flipProps(cprops);
-        outsrtp = new ICESRTP(id, type, flip[0], flip[1]);
-        outsrtp.setSSRC(csrc);
-        outsrtp.setRealloc(true);
+        outvsrtp = new ICESRTP(id, vtype, flip[0], flip[1]);
+        outvsrtp.setSSRC(vcsrc);
+        outvsrtp.setRealloc(true);
         vidSender = new V4l2H264("/dev/video0") {
             @Override
             protected void sendRTP(long seqno, byte[] payload, boolean mark, long stamp) {
                 try {
-                    Log.verb("forwarding encrypted pkt " + csrc + " stamp" + stamp + " seq " + (int) seqno + " size " + payload.length + " mark " + mark);
-                    outsrtp.sendPacket(payload, stamp, (char) seqno, type, mark);
+                    Log.verb("forwarding encrypted pkt " + vcsrc + " stamp" + stamp + " seq " + (int) seqno + " size " + payload.length + " mark " + mark);
+                    outvsrtp.sendPacket(payload, stamp, (char) seqno, vtype, mark);
                 } catch (IOException ex) {
                     Log.warn("exception " + ex.getMessage());
                 }
             }
         };
+        outasrtp = new ICESRTP(id + 1, atype, flip[0], flip[1]);
+        outasrtp.setSSRC(acsrc);
+        outasrtp.setRealloc(true);
         try {
+            audioSender = new AlsaOpus() {
+                @Override
+                protected void sendRTP(long seqno, byte[] payload, boolean mark, long stamp) {
+                    try {
+                        Log.verb("forwarding encrypted pkt " + acsrc + " stamp" + stamp + " seq " + (int) seqno + " size " + payload.length + " mark " + mark);
+                        outasrtp.sendPacket(payload, stamp, (char) seqno, atype, mark);
+                    } catch (IOException ex) {
+                        Log.warn("exception " + ex.getMessage());
+                    }
+                }
+            };
             vidSender.startListeningV();
             Log.info("Now sending Video");
+            audioSender.startMedia();
         } catch (Exception ex) {
             Log.warn("exception " + ex.getMessage());
         }
@@ -107,8 +127,10 @@ class RTP {
         cprops = props;
     }
 
-    public RTP(long cs, int ty) {
-        type = ty;
-        csrc = cs;
+    public RTP(long vcs, int vty, long acs, int aty) {
+        vtype = vty;
+        vcsrc = vcs;
+        atype = aty;
+        acsrc = acs;
     }
 }

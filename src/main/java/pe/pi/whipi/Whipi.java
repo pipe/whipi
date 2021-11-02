@@ -42,6 +42,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import pe.pi.whipi.util.CandidateTransport;
 import pe.pi.whipi.util.OfferMaker;
@@ -71,14 +73,14 @@ class Whipi {
         uri = u;
         token = t;
         vssrc = Math.abs(random.nextInt());
-        //assrc = Math.abs(random.nextInt());
+        assrc = Math.abs(random.nextInt());
         client = HttpClient.newHttpClient();
         try {
             getLinks();
         } catch (Exception x) {
             Log.warn("OPTIONS on " + uri + " failed because of " + x.getMessage());
         }
-        rtp = new RTP(vssrc, 96) {
+        rtp = new RTP(vssrc, 96, assrc, 111) {
 
         };
         dtls = new DTLS(random) {
@@ -128,7 +130,7 @@ class Whipi {
 
             @Override
             void onConnected(RTCIceCandidatePair scp) {
-                Log.info("ICE has connected to server at"+ scp.getFarIp());
+                Log.info("ICE has connected to server at" + scp.getFarIp());
                 scp.onRTP = (rtppkt) -> {
                     if (rtppkt instanceof RTCDtlsPacket) {
                         byte data[] = ((RTCDtlsPacket) rtppkt).data;
@@ -198,10 +200,10 @@ class Whipi {
                 .timeout(Duration.ofSeconds(10))
                 .header("Content-Type", "application/sdp")
                 .POST(BodyPublishers.ofString(offer));
-        if (token != null){
-               bu=bu.header("Authorization", "Bearer " + token);
+        if (token != null) {
+            bu = bu.header("Authorization", "Bearer " + token);
         }
-        HttpRequest request= bu.build();
+        HttpRequest request = bu.build();
         HttpResponse<String> response
                 = client.send(request, BodyHandlers.ofString());
         int status = response.statusCode();
@@ -224,6 +226,32 @@ class Whipi {
     }
 
     void quit() {
+        resource.ifPresent( (luri)->{
+            URI ruri;
+            URI turi;
+            if (luri.startsWith("https://")){
+                ruri = URI.create(luri);
+            } else {
+                turi = URI.create(uri);
+                ruri = turi.resolve(luri);
+            }
+            HttpRequest.Builder bu = HttpRequest.newBuilder()
+                    .uri(ruri)
+                    .timeout(Duration.ofSeconds(10))
+                    .DELETE();
+            if (token != null) {
+                bu = bu.header("Authorization", "Bearer " + token);
+            }
+            HttpRequest request = bu.build();
+            HttpResponse<String> response;
+            try {
+                response = client.send(request, BodyHandlers.ofString());
+                int status = response.statusCode();
+                Log.info("Http delete status :" + status);
+            } catch (Exception ex) {
+                Logger.getLogger(Whipi.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
         System.exit(0);
     }
 
