@@ -1,5 +1,5 @@
 # whipi
-A minimal WHIP implementation for the Raspberry Pi. It sends Mic and Camera to a WHIP endpoint
+A minimal WHIP implementation for the Raspberry Pi. It sends Camera (and Mic soon) to a WHIP endpoint
 
 Requires a Raspberry Pi with a PiCam and Java 11.
 
