@@ -97,6 +97,7 @@ class RTP {
         };
         try {
             vidSender.startListeningV();
+            Log.info("Now sending Video");
         } catch (Exception ex) {
             Log.warn("exception " + ex.getMessage());
         }

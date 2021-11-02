@@ -95,6 +95,7 @@ class Whipi {
 
             @Override
             public void onReady() {
+                Log.info("DTLS complete.");
                 Properties[] props = this.extractCryptoProps();
                 rtp.setCrypto(props);
                 rtp.start();
@@ -103,6 +104,7 @@ class Whipi {
         slice = new ICE(random) {
             @Override
             void onGathered() {
+                Log.info("Got local ip address(es)");
                 try {
                     String offer = makeOffer();
                     String answer = sendOffer(offer);
@@ -126,6 +128,7 @@ class Whipi {
 
             @Override
             void onConnected(RTCIceCandidatePair scp) {
+                Log.info("ICE has connected to server at"+ scp.getFarIp());
                 scp.onRTP = (rtppkt) -> {
                     if (rtppkt instanceof RTCDtlsPacket) {
                         byte data[] = ((RTCDtlsPacket) rtppkt).data;
@@ -141,7 +144,6 @@ class Whipi {
                     }
                 };
                 dtls.start(cdt, ffp);
-                Log.debug("ICE connected! to " + scp.getFarIp());
             }
         };
     }
@@ -185,11 +187,12 @@ class Whipi {
                         Log.debug("\t" + k + ":" + v);
                     }
                 });
-        Log.debug("Options status :" + status);
+        Log.info("Http Options status :" + status);
     }
 
     private String sendOffer(String offer) throws Exception {
         printOffer(offer);
+        Log.info("Sending SDP offer");
         HttpRequest.Builder bu = HttpRequest.newBuilder()
                 .uri(URI.create(uri))
                 .timeout(Duration.ofSeconds(10))
@@ -202,15 +205,16 @@ class Whipi {
         HttpResponse<String> response
                 = client.send(request, BodyHandlers.ofString());
         int status = response.statusCode();
-        Log.debug("status :" + status);
+        Log.info("Http offer status :" + status);
         String answer = response.body();
         Log.debug("answer :\n" + answer);
         if (status != 201) {
             throw new java.lang.IllegalArgumentException("" + status);
         }
+        Log.info("Got SDP answer");
         resource = response.headers().firstValue("Location");
         if (resource.isPresent()) {
-            Log.debug("Resource is " + resource);
+            Log.info("Resource is " + resource);
         }
         return answer;
     }
@@ -259,5 +263,4 @@ class Whipi {
             System.exit(0);
         }
     }
-
 }
