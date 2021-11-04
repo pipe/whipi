@@ -28,7 +28,7 @@ import java.util.ArrayList;
  */
 public class OfferMaker {
 
-    public static String makeOffer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Integer videoSsrc, Integer audioSsrc, String fingerprint) {
+    public static String makeOffer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Integer videoSsrc, Integer audioSsrc, String fingerprint, String cname) {
         String ret
                 = "v=0\n"
                 + "o=- 4648475892259889561 3 IN IP4 127.0.0.1\n"
@@ -59,7 +59,7 @@ public class OfferMaker {
                     + "a=rtcp-fb:96 nack\n"
                     + "a=rtcp-fb:96 goog-remb\n"
                     + "a=fmtp:96 packetization-mode=1;profile-level-id=42e01f\n"
-                    + "a=ssrc:"+videoSsrc+" cname:whipiVideo\n";
+                    + "a=ssrc:"+videoSsrc+" cname:"+cname+"\n";
         }
         if (audioSsrc!= null) {
             ret
@@ -71,7 +71,7 @@ public class OfferMaker {
                     + "a=sendonly\n"
                     + "a=rtcp-mux\n"
                     + "a=rtpmap:111 opus/48000/2\n"
-                    + "a=ssrc:"+audioSsrc+" cname:whipiAudio\n";
+                    + "a=ssrc:"+audioSsrc+" cname:"+cname+"\n";
         }
         ret = ret.replace("\n", "\r\n");
         return ret;

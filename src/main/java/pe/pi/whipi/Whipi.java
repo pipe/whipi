@@ -158,7 +158,7 @@ class Whipi {
         dtls.mkCertNKey();
         String fingerprint = dtls.getPrint(true);
 
-        return OfferMaker.makeOffer(cs, ufrag, upass, vssrc, assrc, fingerprint);
+        return OfferMaker.makeOffer(cs, ufrag, upass, vssrc, assrc, fingerprint,Long.toHexString(SN));
     }
 
     private void printOffer(String offer) {
