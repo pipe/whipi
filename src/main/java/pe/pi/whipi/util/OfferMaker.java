@@ -35,7 +35,7 @@ public class OfferMaker {
                 + "s=-\n"
                 + "t=0 0\n";
         if ((videoSsrc != null) && (audioSsrc != null)) {
-            ret += "a=group:BUNDLE video audio\n";
+            ret += "a=group:BUNDLE 1 2\n";
         }
         for (var c : cs) {
             String mc = c.toString();
@@ -52,7 +52,7 @@ public class OfferMaker {
                     + "c=IN IP4 0.0.0.0\n"
                     + "a=rtcp:9 IN IP4 0.0.0.0\n"
                     + "a=setup:passive\n"
-                    + "a=mid:video\n"
+                    + "a=mid:1\n"
                     + "a=sendonly\n"
                     + "a=rtcp-mux\n"
                     + "a=rtpmap:96 H264/90000\n"
@@ -67,7 +67,7 @@ public class OfferMaker {
                     + "c=IN IP4 0.0.0.0\n"
                     + "a=rtcp:9 IN IP4 0.0.0.0\n"
                     + "a=setup:passive\n"
-                    + "a=mid:audio\n"
+                    + "a=mid:2\n"
                     + "a=sendonly\n"
                     + "a=rtcp-mux\n"
                     + "a=rtpmap:111 opus/48000/2\n"

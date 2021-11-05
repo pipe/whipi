@@ -210,6 +210,14 @@ class Whipi {
         Log.info("Http offer status :" + status);
         String answer = response.body();
         Log.debug("answer :\n" + answer);
+        if (Log.getLevel() >= Log.DEBUG){
+            response.headers().map().forEach((String k,List<String> vs) ->{
+                Log.debug(k+"\t:");
+                for (String v:vs){
+                    Log.debug("\t:"+v);
+                }
+            });
+        }
         if (status != 201) {
             throw new java.lang.IllegalArgumentException("" + status);
         }
