@@ -25,3 +25,5 @@ This is very much a Work in Progress.
 PRs etc are most welcome.
 
 Tim.
+
+NOTE - this does not work on the just released version of raspios - (bullseye) - stick with the previous version (buster) untill they fix it.
