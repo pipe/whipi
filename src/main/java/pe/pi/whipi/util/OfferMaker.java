@@ -28,7 +28,7 @@ import java.util.ArrayList;
  */
 public class OfferMaker {
 
-    public static String makeOffer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Integer videoSsrc, Integer audioSsrc, String fingerprint, String cname) {
+    public static String makeOffer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Long videoSsrc, Long audioSsrc, String fingerprint, String cname) {
         String ret
                 = "v=0\n"
                 + "o=- 4648475892259889561 3 IN IP4 127.0.0.1\n"

@@ -23,6 +23,7 @@ import com.ipseorama.slice.ORTC.RTCEventData;
 import pe.pi.whipi.util.AnswerParser;
 import com.ipseorama.slice.ORTC.RTCIceCandidate;
 import com.ipseorama.slice.ORTC.RTCIceCandidatePair;
+import com.ipseorama.slice.ORTC.RTCRtpPacket;
 import com.phono.srtplight.Log;
 import java.io.IOException;
 import java.net.URI;
@@ -39,9 +40,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -52,7 +55,7 @@ import pe.pi.whipi.util.OfferMaker;
  *
  * @author thp
  */
-class Whipi {
+public class Whipi {
 
     private static Long SN;
 
@@ -63,17 +66,18 @@ class Whipi {
     RTP rtp;
     String ffp;
     SecureRandom random = new SecureRandom();
-    private Integer vssrc;
-    private Integer assrc;
+    private Long vssrc;
+    private Long assrc;
+    Timer tock;
 
     HttpClient client;
     private Optional<String> resource;
 
-    Whipi(String u, String t) {
+    public Whipi(String u, String t) {
         uri = u;
         token = t;
-        vssrc = Math.abs(random.nextInt());
-        assrc = Math.abs(random.nextInt());
+        vssrc = (long) Math.abs(random.nextInt()); // remove this if you want to run audio only
+        assrc = (long) Math.abs(random.nextInt()); // remove this if you want to run video only
         client = HttpClient.newHttpClient();
         try {
             getLinks();
@@ -101,6 +105,7 @@ class Whipi {
                 Properties[] props = this.extractCryptoProps();
                 rtp.setCrypto(props);
                 rtp.start();
+
             }
         };
         slice = new ICE(random) {
@@ -132,9 +137,8 @@ class Whipi {
             void onConnected(RTCIceCandidatePair scp) {
                 Log.info("ICE has connected to server at" + scp.getFarIp());
                 scp.onRTP = (rtppkt) -> {
-                    if (rtppkt instanceof RTCDtlsPacket) {
-                        byte data[] = ((RTCDtlsPacket) rtppkt).data;
-                        rtp.inbound(rtppkt);
+                    if (rtppkt instanceof RTCRtpPacket) {
+                        rtp.inbound((RTCRtpPacket) rtppkt);
                     }
                 };
                 final CandidateTransport cdt = new CandidateTransport(getTransport());
@@ -158,7 +162,7 @@ class Whipi {
         dtls.mkCertNKey();
         String fingerprint = dtls.getPrint(true);
 
-        return OfferMaker.makeOffer(cs, ufrag, upass, vssrc, assrc, fingerprint,Long.toHexString(SN));
+        return OfferMaker.makeOffer(cs, ufrag, upass, vssrc, assrc, fingerprint, Long.toHexString(SN));
     }
 
     private void printOffer(String offer) {
@@ -210,11 +214,11 @@ class Whipi {
         Log.info("Http offer status :" + status);
         String answer = response.body();
         Log.debug("answer :\n" + answer);
-        if (Log.getLevel() >= Log.DEBUG){
-            response.headers().map().forEach((String k,List<String> vs) ->{
-                Log.debug(k+"\t:");
-                for (String v:vs){
-                    Log.debug("\t:"+v);
+        if (Log.getLevel() >= Log.DEBUG) {
+            response.headers().map().forEach((String k, List<String> vs) -> {
+                Log.debug(k + "\t:");
+                for (String v : vs) {
+                    Log.debug("\t:" + v);
                 }
             });
         }
@@ -229,15 +233,15 @@ class Whipi {
         return answer;
     }
 
-    void start() {
+    public void start() {
         slice.gather();
     }
 
-    void quit() {
-        resource.ifPresent( (luri)->{
+    public void quit() {
+        resource.ifPresent((luri) -> {
             URI ruri;
             URI turi;
-            if (luri.startsWith("https://")){
+            if (luri.startsWith("https://")) {
                 ruri = URI.create(luri);
             } else {
                 turi = URI.create(uri);
@@ -298,5 +302,26 @@ class Whipi {
         } else {
             System.exit(0);
         }
+    }
+
+    Hashtable<String, Long> ovstats;
+    Hashtable<String, Long> oastats;
+
+    public Hashtable<String, Long> getVideoStats() {
+        if (ovstats == null) {
+            ovstats = rtp.newStats(this.vssrc);
+        } else {
+            ovstats = rtp.getStats(ovstats);
+        }
+        return ovstats;
+    }
+
+    public Hashtable<String, Long> getAudioStats() {
+        if (oastats == null) {
+            oastats = rtp.newStats(this.assrc);
+        } else {
+            oastats = rtp.getStats(oastats);
+        }
+        return oastats;
     }
 }

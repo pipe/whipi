@@ -74,7 +74,7 @@ abstract public class AlsaOpus {
         AudioReceiver ar = (AudioFace af, int avail) -> {
             if (first) {
                 first = false;
-                Log.info("Now sending audio");
+                Log.info("Sending media.");
                 then = System.currentTimeMillis();
             }
             try {
@@ -93,6 +93,10 @@ abstract public class AlsaOpus {
         };
         audio.addAudioReceiver(ar);
         audio.startRec();
+    }
+    public Long getLevel(){
+        double[] v = audio.getEnergy();
+        return (long) (100 * v[0])/Short.MAX_VALUE;
     }
 
     protected abstract void sendRTP(long seqno, byte[] payload, boolean mark, long stamp);

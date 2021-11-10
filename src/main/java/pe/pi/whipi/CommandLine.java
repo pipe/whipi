@@ -20,6 +20,7 @@ package pe.pi.whipi;
 
 import com.phono.srtplight.Log;
 import java.io.IOException;
+import java.util.Hashtable;
 
 /**
  *
@@ -50,6 +51,19 @@ public class CommandLine {
             c =  System.in.read();
             switch (c){
                 case 'q':whip.quit();break;
+                case 'a':
+                    Hashtable<String,Long> stats = whip.getAudioStats();
+                    System.out.println("Audio stats");
+                    stats.forEach((k,v)-> {System.out.println("\t"+k+"="+v);});
+                    break;
+                case 'v':
+                    Hashtable<String,Long> vstats = whip.getVideoStats();
+                    System.out.println("Video stats");
+                    vstats.forEach((k,v)-> {System.out.println("\t"+k+"="+v);});
+                    break;
+                case '\r':
+                case '\n':
+                    break;
                 default: System.out.println("command not understood ");
             }
         }while ((c> 0) && (whip.isRunning()));
