@@ -154,7 +154,11 @@ public class Whipi {
 
         };
     }
-
+    
+    public void start() {
+        slice.gather();
+    }
+    
     private String makeOffer() throws Exception {
         ArrayList<RTCIceCandidate> cs = slice.getCandidates();
         String ufrag = slice.getLfrag();
@@ -234,9 +238,7 @@ public class Whipi {
         return answer;
     }
 
-    public void start() {
-        slice.gather();
-    }
+
 
     public void quit() {
         resource.ifPresent((luri) -> {
