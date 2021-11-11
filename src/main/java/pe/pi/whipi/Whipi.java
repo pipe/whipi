@@ -84,30 +84,8 @@ public class Whipi {
         } catch (Exception x) {
             Log.warn("OPTIONS on " + uri + " failed because of " + x.getMessage());
         }
-        rtp = new RTP(vssrc, 96, assrc, 111) {
 
-        };
-        dtls = new DTLS(random) {
-            @Override
-            protected String makeCn() {
-                String ret = null;
-                if (SN != null) {
-                    Log.warn("Making a new unique certificate for " + SN + " this may take a minute...");
-                    ret = "whipi-" + SN + "-GPL";
-                    Log.debug("cn = " + ret);
-                }
-                return ret; // the CN is the serial number of the Pi
-            }
 
-            @Override
-            public void onReady() {
-                Log.info("DTLS complete.");
-                Properties[] props = this.extractCryptoProps();
-                rtp.setCrypto(props);
-                rtp.start();
-
-            }
-        };
         slice = new ICE(random) {
             @Override
             void onGathered() {
@@ -151,6 +129,29 @@ public class Whipi {
                 };
                 dtls.start(cdt, ffp);
             }
+        };
+        dtls = new DTLS(random) {
+            @Override
+            protected String makeCn() {
+                String ret = null;
+                if (SN != null) {
+                    Log.warn("Making a new unique certificate for " + SN + " this may take a minute...");
+                    ret = "whipi-" + SN + "-GPL";
+                    Log.debug("cn = " + ret);
+                }
+                return ret; // the CN is the serial number of the Pi
+            }
+
+            @Override
+            public void onReady() {
+                Log.info("DTLS complete.");
+                Properties[] props = this.extractCryptoProps();
+                rtp.setCrypto(props);
+                rtp.start();
+            }
+        };
+        rtp = new RTP(vssrc, 96, assrc, 111) {
+
         };
     }
 
