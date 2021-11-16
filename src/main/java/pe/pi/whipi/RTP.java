@@ -169,7 +169,7 @@ class RTP {
         }
 
         public void sendPacket(byte[] data, long stamp, char seqno, int ptype, boolean marker) throws SocketException, IOException {
-            super.sendPacket(data, 0, seqno, ptype, marker);
+            super.sendPacket(data, stamp, seqno, ptype, marker);
             if (marker) {
                 frames++;
             }
