@@ -91,17 +91,17 @@ public class Whipi {
             void onGathered() {
                 Log.info("Got local ip address(es)");
                 try {
-                    String offer = makeOffer();
-                    String answer = sendOffer(offer);
-                    AnswerParser ap = new AnswerParser(answer);
-                    boolean v = vssrc != null;
-                    boolean a = assrc != null;
+                    var offer = makeOffer();
+                    var answer = sendOffer(offer);
+                    var ap = new AnswerParser(answer);
+                    var v = vssrc != null;
+                    var a = assrc != null;
                     if (ap.mediaMatch(v, a)) {
-                        String rufrag = ap.getUfrag();
-                        String rupass = ap.getUpass();
-                        String[] rcandy = ap.getCandidates();
+                        var rufrag = ap.getUfrag();
+                        var rupass = ap.getUpass();
+                        var rcandy = ap.getCandidates();
                         ffp = ap.getFingerprint();
-                        slice.connect(rufrag, rupass, rcandy);
+                        connect(rufrag, rupass, rcandy);
                     } else {
                         throw new Exception("Media match error");
                     }
@@ -227,7 +227,7 @@ public class Whipi {
                 }
             });
         }
-        if (status != 201) {
+        if ((status != 201) && (status != 200)) {
             throw new java.lang.IllegalArgumentException("" + status);
         }
         Log.info("Got SDP answer");
