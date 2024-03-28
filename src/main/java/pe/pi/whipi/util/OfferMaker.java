@@ -58,7 +58,7 @@ public class OfferMaker {
                     + "a=rtpmap:96 H264/90000\n"
                     + "a=rtcp-fb:96 nack\n"
                     + "a=rtcp-fb:96 goog-remb\n"
-                    + "a=fmtp:96 packetization-mode=1;profile-level-id=42e01f\n"
+                    + "a=fmtp:96 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\n"
                     + "a=ssrc:"+videoSsrc+" cname:"+cname+"\n";
         }
         if (audioSsrc!= null) {
