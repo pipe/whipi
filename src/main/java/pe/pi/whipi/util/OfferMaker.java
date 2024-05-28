@@ -16,7 +16,6 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
 package pe.pi.whipi.util;
 
 import com.ipseorama.slice.ORTC.RTCIceCandidate;
@@ -28,6 +27,17 @@ import java.util.ArrayList;
  */
 public class OfferMaker {
 
+    static String addCandidates(String ret, ArrayList<RTCIceCandidate> cs) {
+        for (var c : cs) {
+            String mc = c.toString();
+            int idx = mc.indexOf(" ");
+            String sdpCandy = "a=" + mc.substring(idx).trim();
+            ret += sdpCandy;
+            ret += "\n";
+        }
+        return ret;
+    }
+
     public static String makeOffer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Long videoSsrc, Long audioSsrc, String fingerprint, String cname) {
         String ret
                 = "v=0\n"
@@ -36,13 +46,6 @@ public class OfferMaker {
                 + "t=0 0\n";
         if ((videoSsrc != null) && (audioSsrc != null)) {
             ret += "a=group:BUNDLE 1 2\n";
-        }
-        for (var c : cs) {
-            String mc = c.toString();
-            int idx = mc.indexOf(" ");
-            String sdpCandy = "a="+mc.substring(idx).trim();
-            ret += sdpCandy;
-            ret += "\n";
         }
         ret += "a=ice-ufrag:" + ufrag + "\n";
         ret += "a=ice-pwd:" + upass + "\n";
@@ -59,9 +62,10 @@ public class OfferMaker {
                     + "a=rtcp-fb:96 nack\n"
                     + "a=rtcp-fb:96 goog-remb\n"
                     + "a=fmtp:96 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\n"
-                    + "a=ssrc:"+videoSsrc+" cname:"+cname+"\n";
+                    + "a=ssrc:" + videoSsrc + " cname:" + cname + "\n";
+            ret = addCandidates(ret, cs);
         }
-        if (audioSsrc!= null) {
+        if (audioSsrc != null) {
             ret
                     += "m=audio 9 UDP/TLS/RTP/SAVPF 111\n"
                     + "c=IN IP4 0.0.0.0\n"
@@ -71,7 +75,10 @@ public class OfferMaker {
                     + "a=sendonly\n"
                     + "a=rtcp-mux\n"
                     + "a=rtpmap:111 opus/48000/2\n"
-                    + "a=ssrc:"+audioSsrc+" cname:"+cname+"\n";
+                    + "a=ssrc:" + audioSsrc + " cname:" + cname + "\n";
+            if (videoSsrc == null) {
+                ret = addCandidates(ret, cs);
+            }
         }
         ret = ret.replace("\n", "\r\n");
         return ret;
