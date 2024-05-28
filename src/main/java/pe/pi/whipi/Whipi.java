@@ -23,6 +23,7 @@ import com.ipseorama.slice.ORTC.RTCEventData;
 import pe.pi.whipi.util.AnswerParser;
 import com.ipseorama.slice.ORTC.RTCIceCandidate;
 import com.ipseorama.slice.ORTC.RTCIceCandidatePair;
+import com.ipseorama.slice.ORTC.RTCIceTransport;
 import com.ipseorama.slice.ORTC.RTCRtpPacket;
 import com.phono.srtplight.Log;
 import java.io.IOException;
@@ -112,16 +113,16 @@ public class Whipi {
             }
 
             @Override
-            void onConnected(RTCIceCandidatePair scp) {
+            void onConnected(RTCIceTransport trans, RTCIceCandidatePair scp) {
                 Log.info("ICE has connected to server at" + scp.getFarIp());
-                scp.onRTP = (rtppkt) -> {
+                trans.onRTP = (rtppkt) -> {
                     if (rtppkt instanceof RTCRtpPacket) {
                         rtp.inbound((RTCRtpPacket) rtppkt);
                     }
                 };
                 final CandidateTransport cdt = new CandidateTransport(getTransport());
                 rtp.setCandidateTransport(cdt);
-                scp.onDtls = (RTCEventData pkt) -> {
+                trans.onDtls = (RTCEventData pkt) -> {
                     if (pkt instanceof RTCDtlsPacket) {
                         byte data[] = ((RTCDtlsPacket) pkt).data;
                         cdt.enqueue(data);

@@ -30,7 +30,7 @@ public class CommandLine {
     
     
     public static void main(String args[]) throws IOException{
-        Log.setLevel(Log.INFO);
+        Log.setLevel(Log.DEBUG);
         String url = null;
         String token = null;
         if (args.length > 0){

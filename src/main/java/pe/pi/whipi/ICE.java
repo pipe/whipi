@@ -88,7 +88,7 @@ public abstract class ICE {
             if (transport.getState() == RTCIceTransportState.COMPLETED) {
                 RTCIceCandidatePair sel = transport.getSelectedCandidatePair();
                 if (sel != null) {
-                    onConnected(sel);
+                    onConnected(transport,sel);
                 } else {
                     Log.error("Connected ICE but selected pair is null ?!?! ");
                 }
@@ -172,7 +172,7 @@ public abstract class ICE {
 
     abstract void onGathered();
 
-    abstract void onConnected(RTCIceCandidatePair selectedCandidatePair);
+    abstract void onConnected(RTCIceTransport transport,RTCIceCandidatePair scp);
 
     private static RTCIceCandidate mkCandidate(String r) {
         String foundation;
