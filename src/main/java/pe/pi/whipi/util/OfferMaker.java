@@ -37,8 +37,11 @@ public class OfferMaker {
         }
         return ret;
     }
-
     public static String makeOffer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Long videoSsrc, Long audioSsrc, String fingerprint, String cname) {
+        return makeOffer(cs,ufrag,upass,videoSsrc,audioSsrc,fingerprint,cname,false);
+    }
+    public static String makeOffer(ArrayList<RTCIceCandidate> cs, String ufrag, String upass, Long videoSsrc, Long audioSsrc, String fingerprint, String cname,Boolean isWhep) {
+        String direction = isWhep ?"recvonly":"sendonly";
         String ret
                 = "v=0\n"
                 + "o=- 4648475892259889561 3 IN IP4 127.0.0.1\n"
@@ -56,7 +59,7 @@ public class OfferMaker {
                     + "a=rtcp:9 IN IP4 0.0.0.0\n"
                     + "a=setup:passive\n"
                     + "a=mid:1\n"
-                    + "a=sendonly\n"
+                    + "a="+direction+"\n"
                     + "a=rtcp-mux\n"
                     + "a=rtpmap:96 H264/90000\n"
                     + "a=rtcp-fb:96 nack\n"
@@ -72,7 +75,7 @@ public class OfferMaker {
                     + "a=rtcp:9 IN IP4 0.0.0.0\n"
                     + "a=setup:passive\n"
                     + "a=mid:2\n"
-                    + "a=sendonly\n"
+                    + "a="+direction+"\n"
                     + "a=rtcp-mux\n"
                     + "a=rtpmap:111 opus/48000/2\n"
                     + "a=ssrc:" + audioSsrc + " cname:" + cname + "\n";

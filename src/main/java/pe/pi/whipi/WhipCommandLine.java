@@ -26,7 +26,7 @@ import java.util.Hashtable;
  *
  * @author thp
  */
-public class CommandLine {
+public class WhipCommandLine {
     
     
     public static void main(String args[]) throws IOException{

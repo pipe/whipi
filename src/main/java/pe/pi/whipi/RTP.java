@@ -19,8 +19,11 @@
 package pe.pi.whipi;
 
 import com.ipseorama.slice.ORTC.RTCRtpPacket;
+import com.phono.audio.AudioException;
+import com.phono.audio.StampedAudio;
 import com.phono.srtplight.Log;
 import com.phono.srtplight.RTCP;
+import com.phono.srtplight.RTPDataSink;
 import com.phono.srtplight.SRTCPProtocolImpl;
 import com.phono.srtplight.SRTPProtocolImpl;
 import java.io.IOException;
@@ -126,7 +129,7 @@ class RTP {
             copy("bwe", ret, curr);
             copy("frac", ret, curr);
             copy("ssrc", ret, curr);
-            copy("vol",ret,curr);
+            copy("vol", ret, curr);
         }
         ret.put("then", now);
         return ret;
@@ -214,6 +217,10 @@ class RTP {
     }
 
     void start() {
+        start(false);
+    }
+
+    void start(Boolean isWhep) {
         boolean didstart = true;
         Properties[] flip = flipProps(cprops);
         if (vcsrc != null) {
@@ -242,7 +249,7 @@ class RTP {
         }
         if (acsrc != null) {
             outasrtp = new ICESRTP(id + 1, atype, flip[0], flip[1]);
-            outasrtp.setSSRC(acsrc);
+
             outasrtp.setRealloc(true);
             outsrtcp = new SRTCPProtocolImpl(flip[0], flip[1]) {
                 @Override
@@ -251,17 +258,26 @@ class RTP {
                 }
             };
             try {
-                audioSender = new AlsaOpus() {
+                audioSender = new AlsaOpus(isWhep) {
                     @Override
                     protected void sendRTP(long seqno, byte[] payload, boolean mark, long stamp) {
-                        try {
-                            Log.verb("forwarding encrypted pkt " + acsrc + " stamp" + stamp + " seq " + (int) seqno + " size " + payload.length + " mark " + mark);
-                            outasrtp.sendPacket(payload, stamp, (char) seqno, atype, mark);
-                        } catch (IOException ex) {
-                            Log.warn("exception " + ex.getMessage());
+                        if (!isWhep) {
+                            try {
+                                Log.verb("forwarding encrypted pkt " + acsrc + " stamp" + stamp + " seq " + (int) seqno + " size " + payload.length + " mark " + mark);
+                                outasrtp.sendPacket(payload, stamp, (char) seqno, atype, mark);
+                            } catch (IOException ex) {
+                                Log.warn("exception " + ex.getMessage());
+                            }
                         }
                     }
                 };
+                if (isWhep) {
+                    RTPDataSink rtpds = (byte[] data, long stamp, long seqno) -> {
+                        audioSender.audioSink(data, stamp, seqno);
+                    };
+                    outasrtp.setRTPDataSink(rtpds);
+                }
+                outasrtp.setSSRC(acsrc);
                 audioSender.startMedia();
                 aStats.put("then", System.currentTimeMillis());
             } catch (Exception ex) {

@@ -23,6 +23,7 @@ package pe.pi.whipi.util;
 import com.phono.api.Codec;
 import com.phono.api.CodecList;
 import com.phono.applet.audio.phone.PhonoAudioShim;
+import com.phono.audio.AudioException;
 import com.phono.audio.AudioFace;
 import com.phono.audio.AudioReceiver;
 import com.phono.audio.StampedAudio;
@@ -43,8 +44,10 @@ abstract public class AlsaOpus {
     private boolean first = true;
     private long then;
     long seqno = 0;
+    Boolean isWhep;
 
-    public AlsaOpus() throws Exception {
+    public AlsaOpus(Boolean iw) throws Exception {
+        isWhep = iw;
         Log.debug("AlsaSrtp init");
         audio = new PhonoAudioShim();
         audio.setAudioProperty(PhonoAudioPropNames.DOEC, "false");
@@ -69,6 +72,7 @@ abstract public class AlsaOpus {
             }
 
         }
+
         audio.init(codec.iaxcn, 100);
 
         AudioReceiver ar = (AudioFace af, int avail) -> {
@@ -92,11 +96,32 @@ abstract public class AlsaOpus {
             }
         };
         audio.addAudioReceiver(ar);
-        audio.startRec();
+        if (isWhep){
+            audio.startPlay();
+        } else {
+            audio.startRec();
+        }
+        
     }
-    public Long getLevel(){
+
+    public void audioSink( byte[] data, long stamp, long seqno) {
+
+        Log.verb("audio seqno =" + seqno + " rtp stamp =" + stamp);
+        StampedAudio sa = audio.getCleanStampedAudio();
+
+        int istamp = (int) seqno * audio.getFrameInterval();
+        sa.setStampAndBytes(data, 0, data.length, istamp);
+        try {
+            audio.writeStampedAudio(sa);
+        } catch (AudioException ex) {
+            Log.error(ex.toString());
+        }
+
+    }
+
+    public Long getLevel() {
         double[] v = audio.getEnergy();
-        return (long) (100 * v[0])/Short.MAX_VALUE;
+        return (long) (100 * v[0]) / Short.MAX_VALUE;
     }
 
     protected abstract void sendRTP(long seqno, byte[] payload, boolean mark, long stamp);

@@ -75,17 +75,25 @@ public class Whipi {
     private Optional<String> resource;
 
     public Whipi(String u, String t) {
+        this(u, t, false);
+    }
+
+    public Whipi(String u, String t, Boolean isWhep) {
         uri = u;
         token = t;
-        vssrc = (long) Math.abs(random.nextInt()); // remove this if you want to run audio only
-        assrc = (long) Math.abs(random.nextInt()); // remove this if you want to run video only
+        if (isWhep) {
+            // for now whep only does audio
+            assrc = (long) Math.abs(random.nextInt()); // remove this if you want to run video only
+        } else {
+            vssrc = (long) Math.abs(random.nextInt()); // remove this if you want to run audio only
+            assrc = (long) Math.abs(random.nextInt()); // remove this if you want to run video only
+        }
         client = HttpClient.newHttpClient();
         try {
             getLinks();
         } catch (Exception x) {
             Log.warn("OPTIONS on " + uri + " failed because of " + x.getMessage());
         }
-
 
         slice = new ICE(random) {
             @Override
@@ -155,11 +163,11 @@ public class Whipi {
 
         };
     }
-    
+
     public void start() {
         slice.gather();
     }
-    
+
     private String makeOffer() throws Exception {
         ArrayList<RTCIceCandidate> cs = slice.getCandidates();
         String ufrag = slice.getLfrag();
@@ -238,8 +246,6 @@ public class Whipi {
         }
         return answer;
     }
-
-
 
     public void quit() {
         resource.ifPresent((luri) -> {
