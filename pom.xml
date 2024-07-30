@@ -39,7 +39,7 @@
         <dependency>
             <groupId>com.phono</groupId>
             <artifactId>srtplight</artifactId>
-            <version>1.1.10</version>
+            <version>1.1.11-EXTEN</version>
         </dependency>
         <dependency>
             <groupId>com.ipseorama</groupId>

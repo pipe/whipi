@@ -22,11 +22,14 @@ package pe.pi.whipi.util;
 
 import com.phono.api.Codec;
 import com.phono.api.CodecList;
+import com.phono.applet.audio.phone.PhonoAudio;
 import com.phono.applet.audio.phone.PhonoAudioShim;
 import com.phono.audio.AudioException;
 import com.phono.audio.AudioFace;
 import com.phono.audio.AudioReceiver;
 import com.phono.audio.StampedAudio;
+import com.phono.audio.codec.OpusCodec;
+import com.phono.audio.codec.opus.PureOpusCodec;
 import com.phono.audio.phone.PhonoAudioPropNames;
 import com.phono.srtplight.Log;
 
@@ -36,7 +39,7 @@ import com.phono.srtplight.Log;
  */
 abstract public class AlsaOpus {
 
-    private final PhonoAudioShim audio;
+    private final PhonoAudio audio;
     private final CodecList codecList;
     static String CODEC = "OPUS";
     static String SDPCODEC = "opus/48000/2";
@@ -49,7 +52,28 @@ abstract public class AlsaOpus {
     public AlsaOpus(Boolean iw) throws Exception {
         isWhep = iw;
         Log.debug("AlsaSrtp init");
-        audio = new PhonoAudioShim();
+
+        audio = new PhonoAudio() {
+            @Override
+            protected void fillCodecMap() {
+                super.fillCodecMap();
+                boolean have_native_opus = OpusCodec.loadLib(null);
+                if (have_native_opus) {
+                    Log.debug("Loaded opus codec");
+                    OpusCodec oc = new OpusCodec();
+                    _codecMap.put(new Long(oc.getCodec()), oc);
+                    _defaultCodec = oc;
+                } else {
+                    PureOpusCodec poc = new PureOpusCodec();
+                    Log.debug("Loaded pure opus codec");
+                    _codecMap.put(new Long(poc.getCodec()), poc);
+                    _defaultCodec = poc;
+                }
+
+                printAvailableCodecs();
+            }
+        };
+
         audio.setAudioProperty(PhonoAudioPropNames.DOEC, "false");
         codecList = new CodecList(audio);
     }
@@ -96,15 +120,15 @@ abstract public class AlsaOpus {
             }
         };
         audio.addAudioReceiver(ar);
-        if (isWhep){
+        if (isWhep) {
             audio.startPlay();
         } else {
             audio.startRec();
         }
-        
+
     }
 
-    public void audioSink( byte[] data, long stamp, long seqno) {
+    public void audioSink(byte[] data, long stamp, long seqno) {
 
         Log.verb("audio seqno =" + seqno + " rtp stamp =" + stamp);
         StampedAudio sa = audio.getCleanStampedAudio();
@@ -125,19 +149,5 @@ abstract public class AlsaOpus {
     }
 
     protected abstract void sendRTP(long seqno, byte[] payload, boolean mark, long stamp);
-
-    public static void main(String argv[]) {
-        Log.setLevel(Log.ALL);
-        StringBuffer bret = new StringBuffer("{\n");
-        PhonoAudioShim.getMixersJSON(bret);
-        bret.append("}\n");
-        String deviceList = bret.toString();
-        Log.debug("audio list is :" + deviceList);
-
-        PhonoAudioShim a = new PhonoAudioShim();
-
-        CodecList cl = new CodecList(a);
-
-    }
 
 }

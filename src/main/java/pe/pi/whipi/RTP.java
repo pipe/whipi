@@ -63,13 +63,28 @@ class RTP {
 
         try {
             DatagramPacket data = pkt.data;
-            RTCP[] rtcps = outsrtcp.inbound(data);
-            for (RTCP rtcp : rtcps) {
-                //Log.info("RTCP " + rtcp);
-                rtcpRecieved(rtcp);
+            int ptype = (int) ((0x7f) & data.getData()[1]);
+
+            if (ptype == atype) {
+                byte[] buff = new byte[data.getLength()];
+                DatagramPacket ndp = new DatagramPacket(buff, buff.length);
+                System.arraycopy(data.getData(), data.getOffset(), buff, 0, buff.length);
+                ndp.setAddress(data.getAddress());
+                ndp.setPort(data.getPort());
+                outasrtp.parseICEPacket(ndp);
+                Log.verb("parsed encrypted srtp packet.");
+            } else if (outsrtcp != null) {
+                RTCP[] rtcps = outsrtcp.inbound(data);
+                for (RTCP rtcp : rtcps) {
+                    //Log.info("RTCP " + rtcp);
+                    rtcpRecieved(rtcp);
+                }
+            } else {
+                Log.warn("lost packet ptype =" + (int) data.getData()[1]);
             }
+
         } catch (Exception ex) {
-            Log.warn("problem parsing RTCP?");
+            Log.warn("problem parsing RTCP/RTP?"+ex.getMessage());
         }
 
     }
@@ -273,6 +288,7 @@ class RTP {
                 };
                 if (isWhep) {
                     RTPDataSink rtpds = (byte[] data, long stamp, long seqno) -> {
+                        Log.verb("got audio packet length "+data.length);
                         audioSender.audioSink(data, stamp, seqno);
                     };
                     outasrtp.setRTPDataSink(rtpds);

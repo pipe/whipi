@@ -156,7 +156,7 @@ public class Whipi {
                 Log.info("DTLS complete.");
                 Properties[] props = this.extractCryptoProps();
                 rtp.setCrypto(props);
-                rtp.start();
+                rtp.start(isWhep);
             }
         };
         rtp = new RTP(vssrc, 96, assrc, 111) {
@@ -227,12 +227,12 @@ public class Whipi {
         int status = response.statusCode();
         Log.info("Http offer status :" + status);
         String answer = response.body();
-        Log.debug("answer :\n" + answer);
+        Log.info("answer :\n" + answer);
         if (Log.getLevel() >= Log.DEBUG) {
             response.headers().map().forEach((String k, List<String> vs) -> {
-                Log.debug(k + "\t:");
+                Log.info(k + "\t:");
                 for (String v : vs) {
-                    Log.debug("\t:" + v);
+                    Log.info("\t:" + v);
                 }
             });
         }
