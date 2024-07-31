@@ -19,8 +19,6 @@
 package pe.pi.whipi;
 
 import com.ipseorama.slice.ORTC.RTCRtpPacket;
-import com.phono.audio.AudioException;
-import com.phono.audio.StampedAudio;
 import com.phono.srtplight.Log;
 import com.phono.srtplight.RTCP;
 import com.phono.srtplight.RTPDataSink;
@@ -33,6 +31,8 @@ import java.nio.ByteBuffer;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Properties;
+import java.util.Timer;
+import java.util.TimerTask;
 import pe.pi.whipi.util.AlsaOpus;
 import pe.pi.whipi.util.CandidateTransport;
 import pe.pi.whipi.util.V4l2H264;
@@ -58,6 +58,7 @@ class RTP {
     private boolean started;
     private Hashtable<String, Long> aStats;
     private Hashtable<String, Long> vStats;
+    static protected Timer tock = new Timer("RTCPsendTimer", true);
 
     void inbound(RTCRtpPacket pkt) {
 
@@ -84,7 +85,7 @@ class RTP {
             }
 
         } catch (Exception ex) {
-            Log.warn("problem parsing RTCP/RTP?"+ex.getMessage());
+            Log.warn("problem parsing RTCP/RTP?" + ex.getMessage());
         }
 
     }
@@ -287,8 +288,10 @@ class RTP {
                     }
                 };
                 if (isWhep) {
+                    Stats rcvStats = new Stats();
                     RTPDataSink rtpds = (byte[] data, long stamp, long seqno) -> {
-                        Log.verb("got audio packet length "+data.length);
+                        Log.verb("got audio packet length " + data.length);
+                        rcvStats.addStats(stamp, data.length, acsrc, false);
                         audioSender.audioSink(data, stamp, seqno);
                     };
                     outasrtp.setRTPDataSink(rtpds);
@@ -366,6 +369,7 @@ class RTP {
         if (rtcp instanceof RTCP.BYE) {
             Log.info("RTCP BYE");
             Log.debug(rtcp.toString());
+            System.exit(1);
             //stats.put("bye",1L);
         }
 
@@ -396,5 +400,94 @@ class RTP {
             vStats.put("ssrc", vcsrc);
         }
         id += 2;
+    }
+
+    protected class Stats extends TimerTask {
+
+        private long pkts;
+        private long octs;
+        private long stamp;
+        private long startStamp;
+        private long ssrc;
+        private long frameCount = 0L;
+
+        boolean stop = false;
+
+        public void addStats(long stamp, int octs, long ssrc, boolean mark) {
+            pkts++;
+            if (mark) {
+                frameCount++;
+            }
+            this.octs = this.octs + octs;
+            this.stamp = stamp;
+            if (this.ssrc == 0) {
+                this.ssrc = ssrc;
+                this.startStamp = stamp;
+                startSendingSR();
+            }
+        }
+
+        public void cancelStats() {
+            stop = true;
+        }
+
+        protected void startSendingSR() {
+            Log.debug("scheduling RTCP SRs for " + this.ssrc);
+            try {
+                tock.scheduleAtFixedRate(this, 10, 1000);
+            } catch (java.lang.IllegalStateException x) {
+                Log.error("can't schedule stats for " + ssrc + " because " + x.getMessage());
+            }
+        }
+
+        public void run() {
+            if (stop) {
+                this.cancel();
+            } else {
+                long ntp = toNtpTime(System.currentTimeMillis());
+                try {
+                    //outsrtcp.sendRR();
+                    outsrtcp.sendSR(this.ssrc, ntp, this.stamp, this.pkts, this.octs);
+                } catch (Exception ex) {
+                    Log.debug("problem sending SR packet " + ex.getMessage());
+                    if (Log.getLevel() >= Log.DEBUG) {
+                        ex.printStackTrace();
+                    }
+                    stop = true;
+                }
+            }
+        }
+
+        // lifted from org.apache.commons.net.ntp.TimeStamp - with apache 2.0 license
+        /**
+         * baseline NTP time if bit-0=0 -> 7-Feb-2036 @ 06:28:16 UTC
+         */
+        protected static final long msb0baseTime = 2085978496000L;
+
+        /**
+         * baseline NTP time if bit-0=1 -> 1-Jan-1900 @ 01:00:00 UTC
+         */
+        protected static final long msb1baseTime = -2208988800000L;
+
+        protected long toNtpTime(long t) {
+            boolean useBase1 = t < msb0baseTime;    // time < Feb-2036
+            long baseTime;
+            if (useBase1) {
+                baseTime = t - msb1baseTime; // dates <= Feb-2036
+            } else {
+                // if base0 needed for dates >= Feb-2036
+                baseTime = t - msb0baseTime;
+            }
+
+            long seconds = baseTime / 1000;
+            long fraction = ((baseTime % 1000) * 0x100000000L) / 1000;
+
+            if (useBase1) {
+                seconds |= 0x80000000L; // set high-order bit if msb1baseTime 1900 used
+            }
+
+            long time = seconds << 32 | fraction;
+            return time;
+        }
     }
 }

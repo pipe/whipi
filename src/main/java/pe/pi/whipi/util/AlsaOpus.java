@@ -32,6 +32,7 @@ import com.phono.audio.codec.OpusCodec;
 import com.phono.audio.codec.opus.PureOpusCodec;
 import com.phono.audio.phone.PhonoAudioPropNames;
 import com.phono.srtplight.Log;
+import javax.sound.sampled.Mixer;
 
 /**
  *
@@ -54,6 +55,15 @@ abstract public class AlsaOpus {
         Log.debug("AlsaSrtp init");
 
         audio = new PhonoAudio() {
+            @Override
+            protected void initMic(Mixer mixer) throws AudioException {
+                if (!isWhep) {
+                    super.initMic(mixer);
+                } else {
+                    Log.info("no mic in whep mode");
+                }
+            }
+
             @Override
             protected void fillCodecMap() {
                 super.fillCodecMap();
@@ -119,13 +129,12 @@ abstract public class AlsaOpus {
                 Log.error(ex.toString());
             }
         };
-        audio.addAudioReceiver(ar);
         if (isWhep) {
             audio.startPlay();
         } else {
             audio.startRec();
         }
-
+        audio.addAudioReceiver(ar);
     }
 
     public void audioSink(byte[] data, long stamp, long seqno) {

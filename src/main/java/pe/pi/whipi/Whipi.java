@@ -103,6 +103,10 @@ public class Whipi {
                     var offer = makeOffer();
                     var answer = sendOffer(offer);
                     var ap = new AnswerParser(answer);
+                    if (isWhep) {
+                        vssrc = ap.getVideoSsrc(); // use the numbers from the answer in the case of whep
+                        assrc = ap.getAudioSsrc();
+                    }
                     var v = vssrc != null;
                     var a = assrc != null;
                     if (ap.mediaMatch(v, a)) {
@@ -123,6 +127,7 @@ public class Whipi {
             @Override
             void onConnected(RTCIceTransport trans, RTCIceCandidatePair scp) {
                 Log.info("ICE has connected to server at" + scp.getFarIp());
+                rtp = new RTP(vssrc, 96, assrc, 111);
                 trans.onRTP = (rtppkt) -> {
                     if (rtppkt instanceof RTCRtpPacket) {
                         rtp.inbound((RTCRtpPacket) rtppkt);
@@ -136,6 +141,7 @@ public class Whipi {
                         cdt.enqueue(data);
                     }
                 };
+                
                 dtls.start(cdt, ffp);
             }
         };
@@ -158,9 +164,6 @@ public class Whipi {
                 rtp.setCrypto(props);
                 rtp.start(isWhep);
             }
-        };
-        rtp = new RTP(vssrc, 96, assrc, 111) {
-
         };
     }
 

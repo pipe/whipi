@@ -19,6 +19,9 @@
 package pe.pi.whipi.util;
 
 import com.phono.srtplight.Log;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -29,6 +32,7 @@ import java.util.function.Consumer;
 public class AnswerParser {
 
     private final String answer;
+    private HashMap<String, List<String>> mLines;
 
     public AnswerParser(String lines) {
         answer = lines;
@@ -82,6 +86,59 @@ public class AnswerParser {
         } else {
             Log.warn("Wrong number of m= lines expected" + lc + " got " + alc);
         }
+        return ret;
+    }
+
+    public HashMap<String, List<String>> makeMs() {
+        List<String> all = answer.lines().toList();
+        HashMap<String, List<String>> ret = new HashMap();
+        ArrayList<String> m = null;
+        for (String l : all) {
+            if (l.startsWith("m=")) {
+                m = new ArrayList();
+                String mt = l.substring("m=".length()).split(" ")[0].trim();
+                ret.put(mt, m);
+                Log.debug("found m="+mt);
+            }
+            if (m != null) {
+                m.add(l);
+                Log.debug("added "+l);
+            }
+        }
+        return ret;
+    }
+
+    public Long getAudioSsrc() {
+        return getSsrc("audio");
+    }
+
+    public Long getVideoSsrc() {
+        return getSsrc("video");
+    }
+
+    public Long getSsrc(String type) {
+        // a=ssrc:961710440 msid:f7fcd6b5-be60-4e37-8031-9caf81f39185 audio177958
+        String target = "a=ssrc:";
+        Long ret = null;
+        if (mLines == null) {
+            mLines = makeMs();
+        }
+        List<String> tm = mLines.get(type);
+        if (tm != null) {
+            Optional<String> asline = tm.stream().filter((s) -> {
+                return s.startsWith(target);
+            }).findFirst();
+            if (asline.isPresent()) {
+                String[] bits = asline.get().split(" ");
+                if (bits.length > 0) {
+                    ret = Long.valueOf(bits[0].substring(target.length()));
+                }
+            }
+        } else {
+            Log.info("no matching mline lists of type "+type+ " only ...");
+            mLines.keySet().forEach((s)-> Log.info("---> "+s));
+        }
+        Log.debug("ssrc ="+ret+" for "+type);
         return ret;
     }
 
