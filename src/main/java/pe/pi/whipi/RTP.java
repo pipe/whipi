@@ -33,6 +33,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import pe.pi.whipi.util.AlsaOpus;
 import pe.pi.whipi.util.CandidateTransport;
 import pe.pi.whipi.util.V4l2H264;
@@ -58,7 +61,7 @@ class RTP {
     private boolean started;
     private Hashtable<String, Long> aStats;
     private Hashtable<String, Long> vStats;
-    static protected Timer tock = new Timer("RTCPsendTimer", true);
+    protected static ScheduledExecutorService rtpEx;
 
     void inbound(RTCRtpPacket pkt) {
 
@@ -293,7 +296,9 @@ class RTP {
                     RTPDataSink rtpds = (byte[] data, long stamp, long seqno) -> {
                         Log.verb("got audio packet length " + data.length);
                         rcvStats.addStats(stamp, data.length, acsrc, false);
-                        audioSender.audioSink(data, stamp, seqno);
+                        rtpEx.submit(() -> {
+                            audioSender.audioSink(data, stamp, seqno);
+                        });
                     };
                     outasrtp.setRTPDataSink(rtpds);
                 }
@@ -400,6 +405,9 @@ class RTP {
             vStats.put("ssrc", vcsrc);
         }
         id += 2;
+        if (rtpEx == null) {
+            rtpEx = Executors.newSingleThreadScheduledExecutor((Runnable r) -> new Thread(r, "RTP-" + id + "-Exec"));
+        }
     }
 
     protected class Stats extends TimerTask {
@@ -434,7 +442,7 @@ class RTP {
         protected void startSendingSR() {
             Log.debug("scheduling RTCP SRs for " + this.ssrc);
             try {
-                tock.scheduleAtFixedRate(this, 10, 1000);
+                rtpEx.scheduleAtFixedRate(this, 10, 1000, TimeUnit.MILLISECONDS);
             } catch (java.lang.IllegalStateException x) {
                 Log.error("can't schedule stats for " + ssrc + " because " + x.getMessage());
             }

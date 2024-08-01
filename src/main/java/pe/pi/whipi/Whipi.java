@@ -141,8 +141,7 @@ public class Whipi {
                         cdt.enqueue(data);
                     }
                 };
-                
-                dtls.start(cdt, ffp);
+                new Thread(()->{dtls.start(cdt, ffp);},"connected").start();
             }
         };
         dtls = new DTLS(random) {
