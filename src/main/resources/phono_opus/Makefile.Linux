@@ -1,0 +1,5 @@
+libphono-opus.so: com_phono_audio_codec_OpusCodec.c	com_phono_audio_codec_OpusCodec.h
+	gcc -shared -fPIC -I./jvm-include/linux/ -I./jvm-include -I../opus-dist/include com_phono_audio_codec_OpusCodec.c -lopus -o libphono-opus.so 
+
+clean:
+	rm -f *.so
