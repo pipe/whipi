@@ -30,8 +30,11 @@ public class WhipCommandLine {
     
     
     public static void main(String args[]) throws IOException{
-        Log.setLevel(Log.DEBUG);
-        String url = null;
+        Log.setLevel(Log.DEBUG);        
+        String debugS = System.getProperty("pe.pi.whipi.debug", "" + Log.INFO);
+        int debugLevel = Integer.parseInt(debugS);
+        Log.warn("setting debug level to " + debugLevel);
+        Log.setLevel(debugLevel);           String url = null;
         String token = null;
         if (args.length > 0){
             url =   args[0];

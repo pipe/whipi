@@ -30,7 +30,12 @@ public class WhepCommandLine {
     
     
     public static void main(String args[]) throws IOException{
-        Log.setLevel(Log.DEBUG);
+        Log.setLevel(Log.DEBUG);        
+        String debugS = System.getProperty("pe.pi.whipi.debug", "" + Log.INFO);
+        int debugLevel = Integer.parseInt(debugS);
+        Log.warn("setting debug level to " + debugLevel);
+        Log.setLevel(debugLevel);        
+        
         String url = null;
         String token = null;
         if (args.length > 0){

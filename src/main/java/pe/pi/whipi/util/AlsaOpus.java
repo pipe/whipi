@@ -23,7 +23,6 @@ package pe.pi.whipi.util;
 import com.phono.api.Codec;
 import com.phono.api.CodecList;
 import com.phono.applet.audio.phone.PhonoAudio;
-import com.phono.applet.audio.phone.PhonoAudioShim;
 import com.phono.audio.AudioException;
 import com.phono.audio.AudioFace;
 import com.phono.audio.AudioReceiver;
@@ -32,6 +31,7 @@ import com.phono.audio.codec.OpusCodec;
 import com.phono.audio.codec.opus.PureOpusCodec;
 import com.phono.audio.phone.PhonoAudioPropNames;
 import com.phono.srtplight.Log;
+import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.Mixer;
 
 /**
@@ -64,16 +64,37 @@ abstract public class AlsaOpus {
                 }
             }
 
+            public AudioFormat getAudioFormat() {
+                if (!isWhep) {
+                    return super.getAudioFormat();
+                } else {
+                    _cutsz = 4 * ((_sampleRate > 8000.0) ? 4 : 2); // for mono - more for  stereo
+                    Log.debug("doing stereo: Cutsz =" + _cutsz);
+                    return new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, _sampleRate, 16, 1, 2, _sampleRate, true);
+                }
+            }
+
             @Override
             protected void fillCodecMap() {
                 super.fillCodecMap();
                 boolean have_native_opus = OpusCodec.loadLib(null);
                 if (have_native_opus) {
                     Log.debug("Loaded opus codec");
+                    if (isWhep) {
+                        // we can afford higher quality with a native recvonly codec.
+                        OpusCodec.PHONOSAMPLERATE = OpusCodec.SampleRate.HD;
+                        OpusCodec.PHONOAPPLICATION = OpusCodec.Application.AUDIO;
+                        //OpusCodec.CHANNELS = 2;
+                    }
                     OpusCodec oc = new OpusCodec();
                     _codecMap.put(new Long(oc.getCodec()), oc);
                     _defaultCodec = oc;
                 } else {
+                    if (isWhep) {
+                        PureOpusCodec.PHONOSAMPLERATE = OpusCodec.SampleRate.HD;
+                        PureOpusCodec.PHONOAPPLICATION = OpusCodec.Application.AUDIO;
+                        //PureOpusCodec.CHANNELS = 2;
+                    }
                     PureOpusCodec poc = new PureOpusCodec();
                     Log.debug("Loaded pure opus codec");
                     _codecMap.put(new Long(poc.getCodec()), poc);

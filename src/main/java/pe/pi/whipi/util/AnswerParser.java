@@ -135,8 +135,8 @@ public class AnswerParser {
                 }
             }
         } else {
-            Log.info("no matching mline lists of type "+type+ " only ...");
-            mLines.keySet().forEach((s)-> Log.info("---> "+s));
+            Log.debug("no matching mline lists of type "+type+ " only ...");
+            mLines.keySet().forEach((s)-> Log.debug("---> "+s));
         }
         Log.debug("ssrc ="+ret+" for "+type);
         return ret;

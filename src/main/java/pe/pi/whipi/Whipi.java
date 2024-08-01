@@ -98,9 +98,9 @@ public class Whipi {
         slice = new ICE(random) {
             @Override
             void onGathered() {
-                Log.info("Got local ip address(es)");
+                Log.debug("Got local ip address(es)");
                 try {
-                    var offer = makeOffer();
+                    var offer = makeOffer(isWhep);
                     var answer = sendOffer(offer);
                     var ap = new AnswerParser(answer);
                     if (isWhep) {
@@ -126,7 +126,7 @@ public class Whipi {
 
             @Override
             void onConnected(RTCIceTransport trans, RTCIceCandidatePair scp) {
-                Log.info("ICE has connected to server at" + scp.getFarIp());
+                Log.debug("ICE has connected to server at" + scp.getFarIp());
                 rtp = new RTP(vssrc, 96, assrc, 111);
                 trans.onRTP = (rtppkt) -> {
                     if (rtppkt instanceof RTCRtpPacket) {
@@ -150,7 +150,7 @@ public class Whipi {
             protected String makeCn() {
                 String ret = null;
                 if (SN != null) {
-                    Log.warn("Making a new unique certificate for " + SN + " this may take a minute...");
+                    Log.info("Making a new unique certificate for " + SN + " this may take a minute...");
                     ret = "whipi-" + SN + "-GPL";
                     Log.debug("cn = " + ret);
                 }
@@ -159,7 +159,7 @@ public class Whipi {
 
             @Override
             public void onReady() {
-                Log.info("DTLS complete.");
+                Log.debug("DTLS complete.");
                 Properties[] props = this.extractCryptoProps();
                 rtp.setCrypto(props);
                 rtp.start(isWhep);
@@ -171,7 +171,7 @@ public class Whipi {
         slice.gather();
     }
 
-    private String makeOffer() throws Exception {
+    private String makeOffer(boolean isWhep) throws Exception {
         ArrayList<RTCIceCandidate> cs = slice.getCandidates();
         String ufrag = slice.getLfrag();
         String upass = slice.getLpass();
@@ -179,7 +179,7 @@ public class Whipi {
         dtls.mkCertNKey();
         String fingerprint = dtls.getPrint(true);
 
-        return OfferMaker.makeOffer(cs, ufrag, upass, vssrc, assrc, fingerprint, Long.toHexString(SN));
+        return OfferMaker.makeOffer(cs, ufrag, upass, vssrc, assrc, fingerprint, Long.toHexString(SN),isWhep);
     }
 
     private void printOffer(String offer) {
@@ -230,22 +230,22 @@ public class Whipi {
         int status = response.statusCode();
         Log.info("Http offer status :" + status);
         String answer = response.body();
-        Log.info("answer :\n" + answer);
+        Log.debug("answer :\n" + answer);
         if (Log.getLevel() >= Log.DEBUG) {
             response.headers().map().forEach((String k, List<String> vs) -> {
-                Log.info(k + "\t:");
+                Log.debug(k + "\t:");
                 for (String v : vs) {
-                    Log.info("\t:" + v);
+                    Log.debug("\t:" + v);
                 }
             });
         }
         if ((status != 201) && (status != 200)) {
             throw new java.lang.IllegalArgumentException("" + status);
         }
-        Log.info("Got SDP answer");
+        Log.debug("Got SDP answer");
         resource = response.headers().firstValue("Location");
         if (resource.isPresent()) {
-            Log.info("Resource is " + resource);
+            Log.debug("Resource is " + resource);
         }
         return answer;
     }
@@ -272,7 +272,7 @@ public class Whipi {
             try {
                 response = client.send(request, BodyHandlers.ofString());
                 int status = response.statusCode();
-                Log.info("Http delete status :" + status);
+                Log.debug("Http delete status :" + status);
             } catch (Exception ex) {
                 Logger.getLogger(Whipi.class.getName()).log(Level.SEVERE, null, ex);
             }

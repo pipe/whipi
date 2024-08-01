@@ -287,6 +287,7 @@ class RTP {
                         }
                     }
                 };
+                audioSender.startMedia();
                 if (isWhep) {
                     Stats rcvStats = new Stats();
                     RTPDataSink rtpds = (byte[] data, long stamp, long seqno) -> {
@@ -297,7 +298,6 @@ class RTP {
                     outasrtp.setRTPDataSink(rtpds);
                 }
                 outasrtp.setSSRC(acsrc);
-                audioSender.startMedia();
                 aStats.put("then", System.currentTimeMillis());
             } catch (Exception ex) {
                 didstart = false;
@@ -367,7 +367,7 @@ class RTP {
         }
 
         if (rtcp instanceof RTCP.BYE) {
-            Log.info("RTCP BYE");
+            Log.info("Remote sent BYE");
             Log.debug(rtcp.toString());
             System.exit(1);
             //stats.put("bye",1L);
